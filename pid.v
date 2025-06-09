@@ -8,6 +8,8 @@ module pid (
 	parameter Ki = 1;
 	parameter Kd = -1;
 	
+	integer i;
+	
 	parameter clk_cycles = 500;				//how many clock cycles the clock divider counts; also controls the depth of past_err
 	
 	reg [7:0] output_pid;
@@ -16,7 +18,6 @@ module pid (
 	reg signed [7:0] current_error;
 	reg signed [7:0] derivative_error;
 	reg signed [7:0] integral_error = 0;
-	reg signed [7:0] output_pid;
 	
 	reg [3:0] clk_cnt = 0;
 	

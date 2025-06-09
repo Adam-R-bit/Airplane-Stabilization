@@ -2,6 +2,11 @@ module spiAccelerometerMaster(
 	input wire clk,		//50 Mhz
 	input wire sdo,
 	input wire start,
+	input wire [5:0] address,			//0x32 = X-Axis LSB, 0x37 = Z-axis MSB, 0x00 = DEVID
+	input wire read_write,				//1 for read, 0 for write
+	input wire multi_byte,				//1 for multi-byte, 0 for single-byte
+	input wire [7:0] data,
+	
 	output wire sdi,
 	output wire CS,
 	output wire sclk,
@@ -11,20 +16,18 @@ module spiAccelerometerMaster(
 );
 	parameter clk_cycles = 500; 			//50 Mhz / 2 Mhz = 25 hz maybe 1 Mhz??? find out
 	
-  	localparam IDLE = 0, START = 1, WRITE = 2, READ = 3, DONE = 4, WAIT = 5;
+  	localparam IDLE = 0, START = 1, WRITE_ADDR = 2, READ = 3, DONE = 4, WAIT = 5, WRITE_DATA = 6;
   
 	reg r_sdi, r_done, r_start_prev;		//sdi means send data to the accelerometer, sdo vice versa
   	reg r_sclk = 1;
 	reg r_CS = 1;
 	reg [15:0] clk_cnt = 0;
-	reg read_write = 1;						//1 for read, 0 for write
-	reg multi_byte = 0;							//1 for multi-byte, 0 for single-byte
-  	reg [5:0] address = 6'b110010;		//0x32 = X-Axis LSB, 0x37 = Z-axis MSB, 0x00 = DEVID
   	reg [2:0] bit_cnt = 7;
 	reg [2:0] state = IDLE;
 	reg [2:0] next_state = IDLE;
   
   	wire start_rising;
+	
   	assign start_rising = start & ~r_start_prev;
   
 	assign sclk = r_sclk;
@@ -54,7 +57,7 @@ module spiAccelerometerMaster(
 					START: begin
 						r_CS <= 0;
 						bit_cnt <= 7;
-						state <= WRITE;
+						state <= WRITE_ADDR;
 					end
 					
 					READ: begin
@@ -80,10 +83,15 @@ module spiAccelerometerMaster(
 				
 				case(state)
 				
-					WRITE: begin
+					WRITE_ADDR: begin
 						if (bit_cnt == 0) begin
 							 r_sdi <= address[0];
-							 next_state <= READ;
+							 
+							 if(read_write)
+								next_state <= READ;
+							 else
+								next_state <= WRITE_DATA;
+							
 							 state <= WAIT;       
 							 bit_cnt <= bit_cnt - 1;
 						end else begin
@@ -94,6 +102,18 @@ module spiAccelerometerMaster(
 							 else if (bit_cnt == 7)
 								  r_sdi <= read_write;
 
+							 bit_cnt <= bit_cnt - 1;
+						end
+					end
+					
+					WRITE_DATA: begin
+						if (bit_cnt == 0) begin
+							 r_sdi <= data[0];
+							 next_state <= DONE;
+							 state <= WAIT;       
+							 bit_cnt <= bit_cnt - 1;
+						end else begin
+							 r_sdi <= data[bit_cnt];
 							 bit_cnt <= bit_cnt - 1;
 						end
 					end
@@ -114,4 +134,4 @@ module spiAccelerometerMaster(
   always@(posedge clk) begin
     r_start_prev = start;
   end
-endmodule
+endmodule 
