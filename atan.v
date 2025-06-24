@@ -1,6 +1,6 @@
-module atan(
+module atan(							//output is in degrees
 	input wire signed [15:0] x,
-	output reg signed [15:0] out
+	output wire signed [15:0] out
 );
 
 	parameter signed [15:0] INV_3 = 16'sd5461; // 1/3 in Q1.14
@@ -27,10 +27,15 @@ module atan(
 
 	wire signed [47:0] x_scaled = x <<< 28; 			// Q3.42
 	wire signed [47:0] result = x_scaled - term1 + term2 - term3;		//Q3.42
-
+	
+	reg [15:0] rad_out;
 	always @(*) begin
-	  out <= result >>> 28; // Back to Q1.14
+	  rad_out <= result >>> 28; // Back to Q1.14
 	end
-
+	
+	rad_to_deg(
+		.rad_q14(rad_out),
+		.deg_int(out)
+	);
 	
 endmodule
