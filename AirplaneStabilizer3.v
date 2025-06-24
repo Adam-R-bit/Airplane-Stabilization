@@ -1,5 +1,4 @@
-
-module AirplaneStabilizer2(
+module AirplaneStabilizer3(
 	//////////// CLOCK //////////
 	input 		          		ADC_CLK_10,
 	input 		          		MAX10_CLK1_50,
@@ -56,63 +55,43 @@ module AirplaneStabilizer2(
 	//////////// GPIO, GPIO connect to GPIO Default //////////
 	inout 		    [35:0]		GPIO
 );
+	wire [15:0] pitchFull;
+	wire [7:0] pitch = pitchFull[15:8];
 	
-	wire [7:0] data_out_accel;
-	reg r_start_accel, r_LED9;
-	wire done_accel;
-	wire start_accel;
+	assign LEDR[0] = pitch[0];
+	assign LEDR[1] = pitch[1];
+	assign LEDR[2] = pitch[2];
+	assign LEDR[3] = pitch[3];
+	assign LEDR[4] = pitch[4];
+	assign LEDR[5] = pitch[5];
+	assign LEDR[6] = pitch[6];
+	assign LEDR[7] = pitch[7];
 	
-	assign LEDR[0] = data_out_accel[0];
-	assign LEDR[1] = data_out_accel[1];
-	assign LEDR[2] = data_out_accel[2];
-	assign LEDR[3] = data_out_accel[3];
-	assign LEDR[4] = data_out_accel[4];
-	assign LEDR[5] = data_out_accel[5];
-	assign LEDR[6] = data_out_accel[6];
-	assign LEDR[7] = data_out_accel[7];
+
 	
-	assign start_accel = r_start_accel;
-	assign LEDR[8] = done_accel;
-	assign LEDR[9] = r_LED9;
-	
-	spiAccelerometerMaster accel (
-		.clk(MAX10_CLK1_50),
-		.sdo(GSENSOR_SDO),
-		.start(start_accel),
-		.sdi(GSENSOR_SDI),
-		.CS(GSENSOR_CS_N),
-		.sclk(GSENSOR_SCLK),
-		.data_out(data_out_accel),
-		.done(done_accel)
+	accelDataOut (
+		.GSENSOR_SDO(GSENSOR_SDO),
+		.MAX10_CLK1_50(MAX10_CLK1_50),
+		
+		.GSENSOR_SDI(GSENSOR_SDI),
+		.GSENSOR_CS_N(GSENSOR_CS_N),
+		.GSENSOR_SCLK(GSENSOR_SCLK),
+		
+		.x(),
+		.y(),
+		.z(),
+		.pitch(),
+		.roll(),
+		.test(pitchFull)
 	);
 	
-	always@(posedge MAX10_CLK1_50) begin
-		if(!KEY[0]) begin
-			r_start_accel <= 1;
-			r_LED9 <= 1;
-		end else begin
-			r_start_accel <= 0;
-			r_LED9 <= 0;
-		end
-	end
-
-	//begin pwm out test
-	wire [7:0] position;
 	
-	assign position[0] = SW[0];
-	assign position[1] = SW[1];
-	assign position[2] = SW[2];
-	assign position[3] = SW[3];
-	assign position[4] = SW[4];
-	assign position[5] = SW[5];
-	assign position[6] = SW[6];
-	assign position[7] = SW[7];
-	
-	
-	pwm_gen(
+	displayThreeDigNum (
+		.num(pitch),
 		.clk(MAX10_CLK1_50),
-		.position(position),
-		.pwm_out(GPIO[0])
+		
+		.dig1(HEX0),
+		.dig2(HEX1),
+		.dig3(HEX2)
 	);
-
 endmodule
